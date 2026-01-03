@@ -1,0 +1,67 @@
+[
+    {
+        "id": 1,
+        "name": "Raïna Raï",
+        "genre": "Raï-Rock / Fusion",
+        "era": "1980s-Present",
+        "origin": "Sidi Bel Abbès",
+        "bio": "Founded in 1980, Raïna Raï revolutionized Algerian music by fusing traditional Raï rhythms with rock instrumentation. The founding members, including Lotfi Attar on guitar, brought a distinct 'Santana-esque' electric guitar sound to North African rhythms.",
+        "cultural_context": "They bridged the gap between rural folklore and urban youth culture. Their song 'Ya Zina' became a multi-generational anthem, symbolizing the modernization of Algerian identity post-independence.",
+        "famous_tracks": [
+            "Ya Zina",
+            "Hagda",
+            "Til Taila"
+        ]
+    },
+    {
+        "id": 2,
+        "name": "Rachid Taha",
+        "genre": "Punk Rock / Chaâbi / Techno",
+        "era": "1980s-2018",
+        "origin": "Oran / Lyon (France)",
+        "bio": "A sonic rebel who started with the band Carte de Séjour. Taha was known for mixing The Clash's punk ethos with Algerian Chaâbi and Raï. He famously covered 'Rock the Casbah', reclaiming it as a North African protest song.",
+        "cultural_context": "Taha represented the diaspora experience (Beurs). His music addressed immigration, racism, and identity crisis. He was a bridge between the French rock scene and the Maghreb.",
+        "famous_tracks": [
+            "Ya Rayah",
+            "Rock el Casbah",
+            "Barra Barra"
+        ]
+    },
+    {
+        "id": 3,
+        "name": "Abranis",
+        "genre": "Kabyle Rock / Psychedelic",
+        "era": "1970s-Present",
+        "origin": "Kabylia",
+        "bio": "Pioneers of 'Rock Kabyle', Abranis blended the Berber language and melodies with 70s Western psychedelic rock and pop. Founded by Karim Abranis, they were among the first to introduce drums and electric bass to Kabyle music.",
+        "cultural_context": "Their music was a vital part of the Berber Cultural Spring. By using Rock, a global genre, they amplified the Kabyle language and identity on an international stage.",
+        "famous_tracks": [
+            "Linda",
+            "Chenar Le Blues",
+            "Avehri"
+        ]
+    },
+    {
+        "name": "T34",
+        "genre": "Punk Rock",
+        "origin": "Algiers",
+        "era": "",
+        "bio": "A legendary punk band known for their raw energy in the late 80s.",
+        "famous_tracks": [
+            "Blue Night",
+            "Revolution"
+        ],
+        "cultural_context": ""
+    },
+    {
+        "name": "Ill Crows",
+        "genre": "Gnawa Punk",
+        "origin": "Constantine",
+        "era": "",
+        "bio": "Project",
+        "famous_tracks": [
+            "standalone"
+        ],
+        "image": "Ill_Crows.png"
+    }
+]
