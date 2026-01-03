@@ -1,0 +1,16 @@
+Subject: Technical Update: Migration to SQLite & Cloud Deployment
+To: R&D Team
+From: Issam (Lead Architect)
+Date: Jan 2, 2026
+
+1. Mission Status
+The "Algerian Rock Archive" has been successfully refactored from a text-based prototype (JSON) to a database-backed application (SQLite). The application is deployed to production via Streamlit Community Cloud.
+
+2. Key Engineering Decisions
+* Database Layer: Adopted sqlite3 to ensure ACID compliance (data integrity) and scalable querying capabilities.
+* Schema Design: Implemented a normalized table structure (artists) with text fields for bio/metadata and string-parsing for list data (tracks).
+* Cloud Persistence: Acknowledged the "Ephemeral Cloud" constraint. While the code is persistent, user-uploaded SQLite data on the Community Tier resets on reboot. Strategy: This is acceptable for V1; V2 will require an external database (Supabase/AWS).
+
+3. Next Objectives
+* Initiate Project "Global Village" (Code Reuse Strategy).
+* Clone the current architecture to create a "Digital Vitrine" for physical products.

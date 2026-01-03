@@ -1,0 +1,75 @@
+import sqlite3
+import json
+import os
+
+# --- CONFIG ---
+JSON_FILE = os.path.join("data", "artists.json")
+DB_FILE = os.path.join("data", "rock_archive.db")
+
+def init_db():
+    """Creates the database and table structure."""
+    # Connect to database (creates it if missing)
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    # Create Table (The Schema)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS artists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            genre TEXT,
+            origin TEXT,
+            era TEXT,
+            bio TEXT,
+            famous_tracks TEXT,  -- Stored as comma-separated string
+            image TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+    print("✅ Database initialized.")
+
+def migrate_data():
+    """Reads JSON and inserts into SQLite."""
+    if not os.path.exists(JSON_FILE):
+        print("⚠️ No JSON file found. Skipping migration.")
+        return
+
+    with open(JSON_FILE, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    print(f"🔄 Migrating {len(data)} artists...")
+    
+    for artist in data:
+        # Convert list of tracks to a single string "Track1, Track2"
+        tracks_str = ", ".join(artist.get('famous_tracks', []))
+        
+        # SQL Insert Command
+        cursor.execute('''
+            INSERT INTO artists (name, genre, origin, era, bio, famous_tracks, image)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            artist['name'], 
+            artist.get('genre'), 
+            artist.get('origin'), 
+            artist.get('era'), 
+            artist.get('bio'), 
+            tracks_str, 
+            artist.get('image')
+        ))
+        
+    conn.commit()
+    conn.close()
+    print("✅ Migration complete!")
+
+if __name__ == "__main__":
+    # Remove old DB if exists to start fresh
+    if os.path.exists(DB_FILE):
+        os.remove(DB_FILE)
+        
+    init_db()
+    migrate_data()

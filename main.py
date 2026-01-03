@@ -1,26 +1,56 @@
 import streamlit as st
 import google.generativeai as genai
-import json
+import sqlite3
 import os
 from PIL import Image
-from ai_engine import load_artists, get_context_string
 
 # --- 1. CONFIG & SETUP ---
-st.set_page_config(page_title="Algerian Rock Archive", layout="wide")
-DATA_FILE = os.path.join("data", "artists.json")
+st.set_page_config(page_title="Algerian Rock Archive (SQL)", layout="wide")
+DB_FILE = os.path.join("data", "rock_archive.db")
 IMG_FOLDER = "images"
 
 if not os.path.exists(IMG_FOLDER):
     os.makedirs(IMG_FOLDER)
 
-# --- 2. HELPER FUNCTIONS ---
-def save_data(data):
+# --- 2. DATABASE FUNCTIONS (The New Brain) ---
+def get_db_connection():
+    """Connects to SQLite and allows accessing columns by name."""
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row # Crucial: Lets us use row['name'] like JSON!
+    return conn
+
+def load_artists():
+    """Fetches all bands from the database."""
+    conn = get_db_connection()
+    artists = conn.execute("SELECT * FROM artists").fetchall()
+    conn.close()
+    # Convert to a list of real dictionaries so the UI logic works
+    return [dict(row) for row in artists]
+
+def add_artist(artist_data):
+    """Inserts a new band into the database."""
     try:
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+        conn = get_db_connection()
+        # Convert list of tracks back to string "Track1, Track2"
+        tracks_str = ", ".join(artist_data['famous_tracks'])
+        
+        conn.execute('''
+            INSERT INTO artists (name, genre, origin, era, bio, famous_tracks, image)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            artist_data['name'], 
+            artist_data['genre'], 
+            artist_data['origin'], 
+            artist_data['era'], 
+            artist_data['bio'], 
+            tracks_str, 
+            artist_data['image']
+        ))
+        conn.commit()
+        conn.close()
         return True
     except Exception as e:
-        st.error(f"Save Error: {e}")
+        st.error(f"Database Error: {e}")
         return False
 
 def save_image(uploaded_file, artist_name):
@@ -33,14 +63,12 @@ def save_image(uploaded_file, artist_name):
     return safe_name
 
 def ask_gemini(api_key, context, question, current_focus=None):
-    """Unified AI Function for Global or Specific questions"""
     if not api_key:
         return "⚠️ Please enter your Google API Key in the sidebar."
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
         
-        # Build the Smart Context
         system_instruction = f"You are an expert Historian on Algerian Rock Music. Base your answers on this archive:\n{context}"
         
         if current_focus:
@@ -54,18 +82,20 @@ def ask_gemini(api_key, context, question, current_focus=None):
 
 # --- 3. SIDEBAR ---
 with st.sidebar:
-    st.header("⚙️ Control Panel")
+    st.header("⚙️ Control Panel (SQL Edition)")
     api_key = st.text_input("Google API Key", type="password")
     st.markdown("---")
     app_mode = st.radio("Select Mode:", ["🎸 Visual Shelf", "✍️ Curator (Add Band)"])
 
-# --- 4. DATA LOADING ---
-artists = load_artists()
-global_context = get_context_string(artists) # This string holds the ENTIRE DB
+# --- 4. PREPARE CONTEXT ---
+# We load the data fresh from the DB on every reload
+artists_data = load_artists()
+# Convert the list of dicts to a string for the AI
+global_context = str(artists_data)
 
 # --- 5. MODE A: CURATOR ---
 if app_mode == "✍️ Curator (Add Band)":
-    st.title("✍️ Curator Station")
+    st.title("✍️ Curator Station (Database)")
     with st.form("new_artist_form"):
         col1, col2 = st.columns(2)
         with col1:
@@ -78,7 +108,7 @@ if app_mode == "✍️ Curator (Add Band)":
             tracks = st.text_input("Famous Tracks (comma separated)")
             uploaded_img = st.file_uploader("Upload Album Cover", type=['png', 'jpg', 'jpeg'])
             
-        if st.form_submit_button("💾 Save to Archive"):
+        if st.form_submit_button("💾 Save to Database"):
             if not name:
                 st.warning("Name is required!")
             else:
@@ -89,9 +119,9 @@ if app_mode == "✍️ Curator (Add Band)":
                     "famous_tracks": [t.strip() for t in tracks.split(',')],
                     "image": img_filename
                 }
-                artists.append(new_entry)
-                if save_data(artists):
-                    st.success(f"✅ {name} added!")
+                
+                if add_artist(new_entry):
+                    st.success(f"✅ {name} committed to SQL Database!")
                     st.balloons()
 
 # --- 6. MODE B: VISUAL SHELF ---
@@ -101,11 +131,11 @@ else:
     if 'selected_artist' not in st.session_state:
         st.session_state.selected_artist = None
 
-    # === VIEW 1: THE GRID (Global View) ===
+    # === GRID VIEW ===
     if st.session_state.selected_artist is None:
         st.subheader("The Collection")
         cols = st.columns(4)
-        for index, artist in enumerate(artists):
+        for index, artist in enumerate(artists_data):
             with cols[index % 4]:
                 with st.container(border=True):
                     img_path = artist.get('image')
@@ -119,13 +149,12 @@ else:
                         st.rerun()
         
         st.markdown("---")
-        # GLOBAL CHAT (New!)
-        st.subheader("💬 Ask the Historian (General)")
+        st.subheader("💬 Ask the Historian")
         if prompt := st.chat_input("Ask about the whole era..."):
             with st.chat_message("assistant"):
                 st.write(ask_gemini(api_key, global_context, prompt))
 
-    # === VIEW 2: DETAIL PAGE (Specific View) ===
+    # === DETAIL VIEW ===
     else:
         if st.button("⬅️ Back to Shelf"):
             st.session_state.selected_artist = None
@@ -139,19 +168,19 @@ else:
                 st.image(os.path.join(IMG_FOLDER, img_path))
             else:
                 st.image("https://placehold.co/400x400/202020/FFFFFF/png?text=Vinyl")
-            st.info(f"📍 {artist.get('origin')}")
+            st.info(f"📍 {artist['origin']}")
 
         with col2:
             st.header(artist['name'])
-            st.write(artist.get('bio'))
+            st.write(artist['bio'])
             st.subheader("Essential Tracks")
-            for t in artist.get('famous_tracks', []):
+            # In DB, tracks are "Track1, Track2". We split them back to list for display.
+            track_list = artist['famous_tracks'].split(',') if isinstance(artist['famous_tracks'], str) else []
+            for t in track_list:
                 st.markdown(f"🎵 {t}")
 
         st.markdown("---")
-        # FOCUSED CHAT
         st.subheader(f"💬 Chat about {artist['name']}")
         if prompt := st.chat_input(f"Ask about {artist['name']}..."):
-            # We pass the same Global Context, but ADD the current focus name
             with st.chat_message("assistant"):
                 st.write(ask_gemini(api_key, global_context, prompt, current_focus=artist['name']))
